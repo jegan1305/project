@@ -1,6 +1,8 @@
 package com.example.contextreminderapp;
 
+import com.example.contextreminderapp.data.FirebaseRepository;
 import com.example.contextreminderapp.models.Reminder;
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -29,9 +31,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,7 +52,8 @@ public class MainActivity extends Activity {
 
     ArrayList<Reminder> reminders = new ArrayList<>();
 
-    FirebaseFirestore db;
+    FirebaseRepository repository;
+
     SensorManager sensorManager;
     Sensor accelerometerSensor;
 
@@ -63,7 +63,6 @@ public class MainActivity extends Activity {
     static final String CHANNEL_ID = "context_reminder_channel";
     boolean isAppInForeground = false;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,7 +70,7 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(5, 8, 20));
         getWindow().setNavigationBarColor(Color.rgb(5, 8, 20));
 
-        db = FirebaseFirestore.getInstance();
+        repository = new FirebaseRepository();
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         if (sensorManager != null) {
@@ -614,65 +613,56 @@ public class MainActivity extends Activity {
     }
 
     private void saveReminderToFirebase(String title, String message, String place) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("title", title);
-        data.put("message", message);
-        data.put("place", place);
-        data.put("createdAt", System.currentTimeMillis());
-        data.put("status", "active");
+        Reminder reminder = new Reminder(title, message, place);
 
-        db.collection("reminders")
-                .add(data)
-                .addOnSuccessListener(documentReference -> {
-                    Reminder reminder = new Reminder(documentReference.getId(), title, message, place);
-                    reminders.add(reminder);
-                    addReminderView(reminder);
-                    updateDashboardSummary();
+        repository.saveReminder(reminder, new FirebaseRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String successMessage) {
+                Toast.makeText(MainActivity.this,
+                        "Reminder saved to Firebase",
+                        Toast.LENGTH_SHORT).show();
 
-                    Toast.makeText(MainActivity.this,
-                            "Reminder saved to Firebase",
-                            Toast.LENGTH_SHORT).show();
+                showResult(
+                        "Result:\nReminder saved successfully.\n\n" +
+                                "Title: " + title + "\n" +
+                                "Place: " + place
+                );
 
-                    showResult(
-                            "Result:\nReminder saved successfully.\n\n" +
-                                    "Title: " + title + "\n" +
-                                    "Place: " + place
-                    );
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this,
-                            "Firebase save failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                loadRemindersFromFirebase();
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Toast.makeText(MainActivity.this,
+                        "Firebase save failed: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void loadRemindersFromFirebase() {
-        db.collection("reminders")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    reminders.clear();
-                    savedReminderContainer.removeAllViews();
+        repository.loadReminders(new FirebaseRepository.ReminderListCallback() {
+            @Override
+            public void onSuccess(ArrayList<Reminder> reminderList) {
+                reminders.clear();
+                savedReminderContainer.removeAllViews();
 
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        String id = document.getId();
-                        String title = document.getString("title");
-                        String message = document.getString("message");
-                        String place = document.getString("place");
+                reminders.addAll(reminderList);
 
-                        if (title != null && message != null && place != null) {
-                            Reminder reminder = new Reminder(id, title, message, place);
-                            reminders.add(reminder);
-                            addReminderView(reminder);
-                        }
-                    }
+                for (Reminder reminder : reminders) {
+                    addReminderView(reminder);
+                }
 
-                    updateDashboardSummary();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this,
-                            "Firebase load failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                updateDashboardSummary();
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Toast.makeText(MainActivity.this,
+                        "Firebase load failed: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void addReminderView(Reminder reminder) {
@@ -690,8 +680,8 @@ public class MainActivity extends Activity {
 
         TextView reminderText = new TextView(this);
         reminderText.setText(
-                "Title: " + reminder.getTitle()+
-                        "\nMessage: " + reminder.getMessage()+
+                "Title: " + reminder.getTitle() +
+                        "\nMessage: " + reminder.getMessage() +
                         "\nPlace: " + reminder.getPlace()
         );
         reminderText.setTextSize(15);
@@ -771,54 +761,53 @@ public class MainActivity extends Activity {
     }
 
     private void updateReminderInFirebase(String reminderId, String title, String message, String place) {
-        Map<String, Object> updatedData = new HashMap<>();
-        updatedData.put("title", title);
-        updatedData.put("message", message);
-        updatedData.put("place", place);
-        updatedData.put("updatedAt", System.currentTimeMillis());
-        updatedData.put("status", "active");
+        Reminder updatedReminder = new Reminder(title, message, place);
 
-        db.collection("reminders")
-                .document(reminderId)
-                .update(updatedData)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(MainActivity.this,
-                            "Reminder updated",
-                            Toast.LENGTH_SHORT).show();
+        repository.updateReminder(reminderId, updatedReminder, new FirebaseRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String successMessage) {
+                Toast.makeText(MainActivity.this,
+                        "Reminder updated",
+                        Toast.LENGTH_SHORT).show();
 
-                    showResult(
-                            "Result:\nReminder updated successfully.\n\n" +
-                                    "Title: " + title + "\n" +
-                                    "Place: " + place
-                    );
+                showResult(
+                        "Result:\nReminder updated successfully.\n\n" +
+                                "Title: " + title + "\n" +
+                                "Place: " + place
+                );
 
-                    loadRemindersFromFirebase();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this,
-                            "Update failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                loadRemindersFromFirebase();
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Toast.makeText(MainActivity.this,
+                        "Update failed: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void deleteReminderFromFirebase(String reminderId) {
-        db.collection("reminders")
-                .document(reminderId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(MainActivity.this,
-                            "Reminder deleted",
-                            Toast.LENGTH_SHORT).show();
+        repository.deleteReminder(reminderId, new FirebaseRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String successMessage) {
+                Toast.makeText(MainActivity.this,
+                        "Reminder deleted",
+                        Toast.LENGTH_SHORT).show();
 
-                    showResult("Result:\nReminder deleted successfully.");
+                showResult("Result:\nReminder deleted successfully.");
 
-                    loadRemindersFromFirebase();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this,
-                            "Delete failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                loadRemindersFromFirebase();
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Toast.makeText(MainActivity.this,
+                        "Delete failed: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void checkReminder(boolean fromBackgroundCheck) {
@@ -889,17 +878,20 @@ public class MainActivity extends Activity {
         logData.put("matchedDetails", matchedDetails);
         logData.put("timestamp", System.currentTimeMillis());
 
-        db.collection("context_logs")
-                .add(logData)
-                .addOnSuccessListener(documentReference -> {
-                })
-                .addOnFailureListener(e -> {
-                    if (isAppInForeground) {
-                        Toast.makeText(MainActivity.this,
-                                "Context log failed: " + e.getMessage(),
-                                Toast.LENGTH_SHORT).show();
-                    }
-                });
+        repository.saveContextLog(logData, new FirebaseRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String successMessage) {
+            }
+
+            @Override
+            public void onFailure(String error) {
+                if (isAppInForeground) {
+                    Toast.makeText(MainActivity.this,
+                            "Context log failed: " + error,
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     private void saveSimulatedWearableData() {
@@ -938,26 +930,29 @@ public class MainActivity extends Activity {
         wearableData.put("source", "simulated_wearable");
         wearableData.put("timestamp", System.currentTimeMillis());
 
-        db.collection("wearable_data")
-                .add(wearableData)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(MainActivity.this,
-                            "Simulated wearable data saved",
-                            Toast.LENGTH_SHORT).show();
+        repository.saveWearableData(wearableData, new FirebaseRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String successMessage) {
+                Toast.makeText(MainActivity.this,
+                        "Simulated wearable data saved",
+                        Toast.LENGTH_SHORT).show();
 
-                    showResult(
-                            "Result:\nWearable Data Simulated\n\n" +
-                                    "Device: demo_watch_001\n" +
-                                    "Activity: " + detectedActivity + "\n" +
-                                    "Place: " + finalCurrentPlace + "\n" +
-                                    "Saved to Firebase collection: wearable_data"
-                    );
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this,
-                            "Wearable data save failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                showResult(
+                        "Result:\nWearable Data Simulated\n\n" +
+                                "Device: demo_watch_001\n" +
+                                "Activity: " + detectedActivity + "\n" +
+                                "Place: " + finalCurrentPlace + "\n" +
+                                "Saved to Firebase collection: wearable_data"
+                );
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Toast.makeText(MainActivity.this,
+                        "Wearable data save failed: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void startPhoneSensorDetection() {
@@ -1071,31 +1066,34 @@ public class MainActivity extends Activity {
         sensorData.put("contextType", "place_plus_activity");
         sensorData.put("timestamp", System.currentTimeMillis());
 
-        db.collection("phone_sensor_data")
-                .add(sensorData)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(MainActivity.this,
-                            "Phone sensor data saved",
-                            Toast.LENGTH_SHORT).show();
+        repository.savePhoneSensorData(sensorData, new FirebaseRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String successMessage) {
+                Toast.makeText(MainActivity.this,
+                        "Phone sensor data saved",
+                        Toast.LENGTH_SHORT).show();
 
-                    showResult(
-                            "Result:\nPhone Sensor Data Saved\n\n" +
-                                    "Activity: " + detectedActivity + "\n" +
-                                    "Place: " + finalCurrentPlace + "\n" +
-                                    "Movement Level: " + movementLevel + "\n" +
-                                    "X: " + x + "\n" +
-                                    "Y: " + y + "\n" +
-                                    "Z: " + z + "\n" +
-                                    "Saved to Firebase collection: phone_sensor_data"
-                    );
+                showResult(
+                        "Result:\nPhone Sensor Data Saved\n\n" +
+                                "Activity: " + detectedActivity + "\n" +
+                                "Place: " + finalCurrentPlace + "\n" +
+                                "Movement Level: " + movementLevel + "\n" +
+                                "X: " + x + "\n" +
+                                "Y: " + y + "\n" +
+                                "Z: " + z + "\n" +
+                                "Saved to Firebase collection: phone_sensor_data"
+                );
 
-                    checkSmartContextReminder(finalCurrentPlace, detectedActivity);
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this,
-                            "Phone sensor data save failed: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                checkSmartContextReminder(finalCurrentPlace, detectedActivity);
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Toast.makeText(MainActivity.this,
+                        "Phone sensor data save failed: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void checkSmartContextReminder(String currentPlace, String detectedActivity) {
