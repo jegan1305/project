@@ -7,6 +7,7 @@ import com.example.contextreminderapp.ui.reminders.RemindersView;
 import com.example.contextreminderapp.ui.context.ContextView;
 import com.example.contextreminderapp.ui.sensors.SensorView;
 import com.example.contextreminderapp.ui.profile.ProfileView;
+import com.example.contextreminderapp.ui.navigation.BottomNavView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -19,7 +20,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -63,6 +63,7 @@ public class MainActivity extends Activity {
     ContextView contextView;
     SensorView sensorView;
     ProfileView profileView;
+    BottomNavView bottomNavView;
 
     SensorManager sensorManager;
     Sensor accelerometerSensor;
@@ -181,46 +182,14 @@ public class MainActivity extends Activity {
         );
         bottomDivider.setLayoutParams(dividerParams);
 
-        LinearLayout bottomNav = new LinearLayout(this);
-        bottomNav.setOrientation(LinearLayout.HORIZONTAL);
-        bottomNav.setBackgroundColor(Color.rgb(12, 18, 34));
-        bottomNav.setPadding(dp(4), 0, dp(4), 0);
+        bottomNavView = new BottomNavView(this);
+        LinearLayout bottomNav = bottomNavView.createView();
 
-        dashboardTab = new Button(this);
-        dashboardTab.setText("Dashboard");
-        dashboardTab.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_nav_dashboard, 0, 0);
-        dashboardTab.setCompoundDrawablePadding(dp(3));
-        styleBottomNavButton(dashboardTab);
-
-        remindersTab = new Button(this);
-        remindersTab.setText("Reminder");
-        remindersTab.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_nav_reminder, 0, 0);
-        remindersTab.setCompoundDrawablePadding(dp(3));
-        styleBottomNavButton(remindersTab);
-
-        contextTab = new Button(this);
-        contextTab.setText("Context");
-        contextTab.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_nav_context, 0, 0);
-        contextTab.setCompoundDrawablePadding(dp(3));
-        styleBottomNavButton(contextTab);
-
-        sensorsTab = new Button(this);
-        sensorsTab.setText("Sensor");
-        sensorsTab.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_nav_sensor, 0, 0);
-        sensorsTab.setCompoundDrawablePadding(dp(3));
-        styleBottomNavButton(sensorsTab);
-
-        profileTab = new Button(this);
-        profileTab.setText("Profile");
-        profileTab.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_nav_profile, 0, 0);
-        profileTab.setCompoundDrawablePadding(dp(3));
-        styleBottomNavButton(profileTab);
-
-        bottomNav.addView(dashboardTab);
-        bottomNav.addView(remindersTab);
-        bottomNav.addView(contextTab);
-        bottomNav.addView(sensorsTab);
-        bottomNav.addView(profileTab);
+        dashboardTab = bottomNavView.getDashboardTab();
+        remindersTab = bottomNavView.getRemindersTab();
+        contextTab = bottomNavView.getContextTab();
+        sensorsTab = bottomNavView.getSensorsTab();
+        profileTab = bottomNavView.getProfileTab();
 
         rootLayout.addView(scrollView);
         rootLayout.addView(bottomDivider);
@@ -402,6 +371,12 @@ public class MainActivity extends Activity {
 
     private void hideResult() {
         resultText.setVisibility(View.GONE);
+    }
+
+    private void updateSelectedTab(Button selectedButton) {
+        if (bottomNavView != null) {
+            bottomNavView.updateSelectedTab(selectedButton);
+        }
     }
 
     private void updateDashboardSummary() {
@@ -1004,67 +979,6 @@ public class MainActivity extends Activity {
         );
         params.setMargins(0, dp(4), 0, dp(4));
         button.setLayoutParams(params);
-    }
-
-    private void styleBottomNavButton(Button button) {
-        button.setAllCaps(false);
-        button.setTextSize(11);
-        button.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        button.setTextColor(Color.rgb(145, 155, 175));
-        button.setBackgroundColor(Color.TRANSPARENT);
-        button.setPadding(0, dp(5), 0, dp(5));
-
-        button.setMinHeight(0);
-        button.setMinimumHeight(0);
-        button.setMinWidth(0);
-        button.setMinimumWidth(0);
-        button.setIncludeFontPadding(false);
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                0,
-                dp(68),
-                1
-        );
-
-        params.setMargins(dp(2), dp(4), dp(2), dp(4));
-        button.setLayoutParams(params);
-    }
-
-    private void updateSelectedTab(Button selectedButton) {
-        setTabStyle(dashboardTab, selectedButton == dashboardTab);
-        setTabStyle(remindersTab, selectedButton == remindersTab);
-        setTabStyle(contextTab, selectedButton == contextTab);
-        setTabStyle(sensorsTab, selectedButton == sensorsTab);
-        setTabStyle(profileTab, selectedButton == profileTab);
-    }
-
-    private void setTabStyle(Button button, boolean isSelected) {
-        if (isSelected) {
-            int selectedColor = Color.rgb(0, 230, 255);
-
-            button.setTextColor(selectedColor);
-            button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            button.setBackgroundColor(Color.rgb(18, 35, 55));
-            tintButtonIcon(button, selectedColor);
-
-        } else {
-            int normalColor = Color.rgb(145, 155, 175);
-
-            button.setTextColor(normalColor);
-            button.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-            button.setBackgroundColor(Color.TRANSPARENT);
-            tintButtonIcon(button, normalColor);
-        }
-    }
-
-    private void tintButtonIcon(Button button, int color) {
-        Drawable[] drawables = button.getCompoundDrawables();
-
-        for (Drawable drawable : drawables) {
-            if (drawable != null) {
-                drawable.setTint(color);
-            }
-        }
     }
 
     private void styleResultText(TextView textView) {
