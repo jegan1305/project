@@ -2,6 +2,8 @@ package com.example.contextreminderapp;
 
 import com.example.contextreminderapp.data.FirebaseRepository;
 import com.example.contextreminderapp.models.Reminder;
+import com.example.contextreminderapp.ui.common.AppHeaderView;
+import com.example.contextreminderapp.ui.common.ResultView;
 import com.example.contextreminderapp.ui.dashboard.DashboardView;
 import com.example.contextreminderapp.ui.reminders.RemindersView;
 import com.example.contextreminderapp.ui.reminders.ReminderCardView;
@@ -18,7 +20,6 @@ import com.example.contextreminderapp.utils.ContextMatcherHelper;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -42,7 +43,6 @@ public class MainActivity extends Activity {
     Button dashboardTab, remindersTab, contextTab, sensorsTab, profileTab;
     Button aboutButton, termsButton;
 
-    TextView resultText;
     TextView aboutCard, termsCard;
 
     LinearLayout savedReminderContainer;
@@ -55,6 +55,9 @@ public class MainActivity extends Activity {
     PhoneSensorHelper phoneSensorHelper;
     WearableSimulationHelper wearableSimulationHelper;
     ContextMatcherHelper contextMatcherHelper;
+
+    AppHeaderView appHeaderView;
+    ResultView resultView;
 
     DashboardView dashboardView;
     RemindersView remindersView;
@@ -96,19 +99,8 @@ public class MainActivity extends Activity {
         mainLayout.setPadding(dp(12), dp(18), dp(12), dp(8));
         mainLayout.setBackgroundColor(Color.rgb(5, 8, 20));
 
-        TextView heading = new TextView(this);
-        heading.setText("SynqSense");
-        heading.setTextSize(28);
-        heading.setTextColor(Color.rgb(0, 230, 255));
-        heading.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        heading.setPadding(0, 0, 0, dp(2));
-
-        TextView tagline = new TextView(this);
-        tagline.setText("Dark Neon Context-Aware Reminder System");
-        tagline.setTextSize(13);
-        tagline.setTextColor(Color.rgb(180, 190, 210));
-        tagline.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        tagline.setPadding(0, 0, 0, dp(10));
+        appHeaderView = new AppHeaderView(this);
+        resultView = new ResultView(this);
 
         dashboardView = new DashboardView(this);
         dashboardSection = dashboardView.createView();
@@ -146,12 +138,7 @@ public class MainActivity extends Activity {
         aboutCard = profileView.getAboutCard();
         termsCard = profileView.getTermsCard();
 
-        resultText = new TextView(this);
-        styleResultText(resultText);
-        resultText.setVisibility(View.GONE);
-
-        mainLayout.addView(heading);
-        mainLayout.addView(tagline);
+        mainLayout.addView(appHeaderView.createView());
 
         mainLayout.addView(dashboardSection);
         mainLayout.addView(remindersSection);
@@ -159,7 +146,7 @@ public class MainActivity extends Activity {
         mainLayout.addView(sensorsSection);
         mainLayout.addView(profileSection);
 
-        mainLayout.addView(resultText);
+        mainLayout.addView(resultView.createView());
 
         ScrollView scrollView = new ScrollView(this);
         scrollView.setBackgroundColor(Color.rgb(5, 8, 20));
@@ -364,12 +351,15 @@ public class MainActivity extends Activity {
     }
 
     private void showResult(String message) {
-        resultText.setText(message);
-        resultText.setVisibility(View.VISIBLE);
+        if (resultView != null) {
+            resultView.show(message);
+        }
     }
 
     private void hideResult() {
-        resultText.setVisibility(View.GONE);
+        if (resultView != null) {
+            resultView.hide();
+        }
     }
 
     private void updateSelectedTab(Button selectedButton) {
@@ -855,20 +845,6 @@ public class MainActivity extends Activity {
 
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
-    }
-
-    private void styleResultText(TextView textView) {
-        textView.setTextSize(15);
-        textView.setTextColor(Color.rgb(230, 235, 245));
-        textView.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        textView.setPadding(0, dp(8), 0, dp(8));
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.setMargins(0, dp(6), 0, dp(4));
-        textView.setLayoutParams(params);
     }
 
     @Override
