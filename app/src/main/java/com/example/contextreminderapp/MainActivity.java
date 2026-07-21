@@ -11,6 +11,7 @@ import com.example.contextreminderapp.ui.profile.ProfileView;
 import com.example.contextreminderapp.ui.navigation.BottomNavView;
 import com.example.contextreminderapp.utils.NotificationHelper;
 import com.example.contextreminderapp.utils.PhoneSensorHelper;
+import com.example.contextreminderapp.utils.WearableSimulationHelper;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -30,7 +31,6 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 public class MainActivity extends Activity {
 
@@ -51,6 +51,7 @@ public class MainActivity extends Activity {
     FirebaseRepository repository;
     NotificationHelper notificationHelper;
     PhoneSensorHelper phoneSensorHelper;
+    WearableSimulationHelper wearableSimulationHelper;
 
     DashboardView dashboardView;
     RemindersView remindersView;
@@ -79,6 +80,7 @@ public class MainActivity extends Activity {
         notificationHelper.requestNotificationPermission();
 
         phoneSensorHelper = new PhoneSensorHelper(this);
+        wearableSimulationHelper = new WearableSimulationHelper();
 
         LinearLayout rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
@@ -660,64 +662,48 @@ public class MainActivity extends Activity {
     }
 
     private void saveSimulatedWearableData() {
-        Random random = new Random();
+        if (wearableSimulationHelper == null) {
+            wearableSimulationHelper = new WearableSimulationHelper();
+        }
 
         String currentPlace = currentPlaceInput.getText().toString().trim();
 
-        if (currentPlace.isEmpty()) {
-            currentPlace = "unknown";
-        }
+        wearableSimulationHelper.generateWearableData(
+                currentPlace,
+                new WearableSimulationHelper.WearableSimulationCallback() {
+                    @Override
+                    public void onDataGenerated(
+                            Map<String, Object> wearableData,
+                            String deviceId,
+                            String detectedActivity,
+                            String generatedPlace
+                    ) {
+                        repository.saveWearableData(wearableData, new FirebaseRepository.SimpleCallback() {
+                            @Override
+                            public void onSuccess(String successMessage) {
+                                Toast.makeText(MainActivity.this,
+                                        "Simulated wearable data saved",
+                                        Toast.LENGTH_SHORT).show();
 
-        final String finalCurrentPlace = currentPlace;
+                                showResult(
+                                        "Result:\nWearable Data Simulated\n\n" +
+                                                "Device: " + deviceId + "\n" +
+                                                "Activity: " + detectedActivity + "\n" +
+                                                "Place: " + generatedPlace + "\n" +
+                                                "Saved to Firebase collection: wearable_data"
+                                );
+                            }
 
-        String[] activities = {"walking", "sitting", "standing", "idle"};
-        String detectedActivity = activities[random.nextInt(activities.length)];
-
-        double accelerometerX = -2 + (4 * random.nextDouble());
-        double accelerometerY = -2 + (4 * random.nextDouble());
-        double accelerometerZ = 8 + (3 * random.nextDouble());
-
-        double gyroscopeX = -0.5 + random.nextDouble();
-        double gyroscopeY = -0.5 + random.nextDouble();
-        double gyroscopeZ = -0.5 + random.nextDouble();
-
-        Map<String, Object> wearableData = new HashMap<>();
-
-        wearableData.put("deviceId", "demo_watch_001");
-        wearableData.put("accelerometerX", accelerometerX);
-        wearableData.put("accelerometerY", accelerometerY);
-        wearableData.put("accelerometerZ", accelerometerZ);
-        wearableData.put("gyroscopeX", gyroscopeX);
-        wearableData.put("gyroscopeY", gyroscopeY);
-        wearableData.put("gyroscopeZ", gyroscopeZ);
-        wearableData.put("detectedActivity", detectedActivity);
-        wearableData.put("currentPlace", currentPlace);
-        wearableData.put("source", "simulated_wearable");
-        wearableData.put("timestamp", System.currentTimeMillis());
-
-        repository.saveWearableData(wearableData, new FirebaseRepository.SimpleCallback() {
-            @Override
-            public void onSuccess(String successMessage) {
-                Toast.makeText(MainActivity.this,
-                        "Simulated wearable data saved",
-                        Toast.LENGTH_SHORT).show();
-
-                showResult(
-                        "Result:\nWearable Data Simulated\n\n" +
-                                "Device: demo_watch_001\n" +
-                                "Activity: " + detectedActivity + "\n" +
-                                "Place: " + finalCurrentPlace + "\n" +
-                                "Saved to Firebase collection: wearable_data"
-                );
-            }
-
-            @Override
-            public void onFailure(String error) {
-                Toast.makeText(MainActivity.this,
-                        "Wearable data save failed: " + error,
-                        Toast.LENGTH_LONG).show();
-            }
-        });
+                            @Override
+                            public void onFailure(String error) {
+                                Toast.makeText(MainActivity.this,
+                                        "Wearable data save failed: " + error,
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+                }
+        );
     }
 
     private void startPhoneSensorDetection() {
