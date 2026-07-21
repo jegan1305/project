@@ -3,6 +3,7 @@ package com.example.contextreminderapp;
 import com.example.contextreminderapp.data.FirebaseRepository;
 import com.example.contextreminderapp.models.Reminder;
 import com.example.contextreminderapp.ui.dashboard.DashboardView;
+import com.example.contextreminderapp.ui.reminders.RemindersView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -55,6 +56,7 @@ public class MainActivity extends Activity {
 
     FirebaseRepository repository;
     DashboardView dashboardView;
+    RemindersView remindersView;
 
     SensorManager sensorManager;
     Sensor accelerometerSensor;
@@ -108,43 +110,14 @@ public class MainActivity extends Activity {
         dashboardView = new DashboardView(this);
         dashboardSection = dashboardView.createView();
 
-        remindersSection = new LinearLayout(this);
-        remindersSection.setOrientation(LinearLayout.VERTICAL);
+        remindersView = new RemindersView(this);
+        remindersSection = remindersView.createView();
 
-        TextView addReminderHeading = new TextView(this);
-        addReminderHeading.setText("Add Reminder");
-        styleSectionHeading(addReminderHeading);
-
-        titleInput = new EditText(this);
-        titleInput.setHint("Reminder Title");
-        styleInput(titleInput);
-
-        messageInput = new EditText(this);
-        messageInput.setHint("Reminder Message");
-        styleInput(messageInput);
-
-        placeInput = new EditText(this);
-        placeInput.setHint("Place Name");
-        styleInput(placeInput);
-
-        saveButton = new Button(this);
-        saveButton.setText("Save Reminder");
-        styleButton(saveButton, false);
-
-        TextView savedHeading = new TextView(this);
-        savedHeading.setText("Saved Reminders");
-        styleSectionHeading(savedHeading);
-
-        savedReminderContainer = new LinearLayout(this);
-        savedReminderContainer.setOrientation(LinearLayout.VERTICAL);
-
-        remindersSection.addView(addReminderHeading);
-        remindersSection.addView(titleInput);
-        remindersSection.addView(messageInput);
-        remindersSection.addView(placeInput);
-        remindersSection.addView(saveButton);
-        remindersSection.addView(savedHeading);
-        remindersSection.addView(savedReminderContainer);
+        titleInput = remindersView.getTitleInput();
+        messageInput = remindersView.getMessageInput();
+        placeInput = remindersView.getPlaceInput();
+        saveButton = remindersView.getSaveButton();
+        savedReminderContainer = remindersView.getSavedReminderContainer();
 
         contextSection = new LinearLayout(this);
         contextSection.setOrientation(LinearLayout.VERTICAL);
