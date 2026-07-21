@@ -9,23 +9,16 @@ import com.example.contextreminderapp.ui.context.ContextView;
 import com.example.contextreminderapp.ui.sensors.SensorView;
 import com.example.contextreminderapp.ui.profile.ProfileView;
 import com.example.contextreminderapp.ui.navigation.BottomNavView;
+import com.example.contextreminderapp.utils.NotificationHelper;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -59,6 +52,8 @@ public class MainActivity extends Activity {
     ArrayList<Reminder> reminders = new ArrayList<>();
 
     FirebaseRepository repository;
+    NotificationHelper notificationHelper;
+
     DashboardView dashboardView;
     RemindersView remindersView;
     ReminderCardView reminderCardView;
@@ -73,7 +68,6 @@ public class MainActivity extends Activity {
     String latestDetectedActivity = "unknown";
     double latestMovementLevel = 0.0;
 
-    static final String CHANNEL_ID = "context_reminder_channel";
     boolean isAppInForeground = false;
 
     @Override
@@ -85,13 +79,14 @@ public class MainActivity extends Activity {
 
         repository = new FirebaseRepository();
 
+        notificationHelper = new NotificationHelper(this);
+        notificationHelper.createNotificationChannel();
+        notificationHelper.requestNotificationPermission();
+
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         if (sensorManager != null) {
             accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         }
-
-        createNotificationChannel();
-        requestNotificationPermission();
 
         LinearLayout rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
@@ -626,7 +621,7 @@ public class MainActivity extends Activity {
                         .setPositiveButton("OK", null)
                         .show();
             } else {
-                showPhoneNotification("Reminder Triggered", matchedReminders.toString());
+                notificationHelper.showPhoneNotification("Reminder Triggered", matchedReminders.toString());
             }
 
         } else {
@@ -906,7 +901,7 @@ public class MainActivity extends Activity {
                         .setPositiveButton("OK", null)
                         .show();
             } else {
-                showPhoneNotification("Smart Context Reminder", matchedReminders.toString());
+                notificationHelper.showPhoneNotification("Smart Context Reminder", matchedReminders.toString());
             }
 
         } else {
@@ -953,55 +948,5 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         isAppInForeground = false;
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Context Reminder Notifications",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription("Notifications for context based reminders");
-
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
-        }
-    }
-
-    private void requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
-            }
-        }
-    }
-
-    private void showPhoneNotification(String title, String message) {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        Notification.Builder builder = new Notification.Builder(this)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(title)
-                .setContentText("You have a reminder for this place")
-                .setStyle(new Notification.BigTextStyle().bigText(message))
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder.setChannelId(CHANNEL_ID);
-        }
-
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        manager.notify(1, builder.build());
     }
 }
