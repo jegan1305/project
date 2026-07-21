@@ -5,6 +5,7 @@ import com.example.contextreminderapp.models.Reminder;
 import com.example.contextreminderapp.ui.dashboard.DashboardView;
 import com.example.contextreminderapp.ui.reminders.RemindersView;
 import com.example.contextreminderapp.ui.reminders.ReminderCardView;
+import com.example.contextreminderapp.ui.reminders.EditReminderDialog;
 import com.example.contextreminderapp.ui.context.ContextView;
 import com.example.contextreminderapp.ui.sensors.SensorView;
 import com.example.contextreminderapp.ui.profile.ProfileView;
@@ -58,6 +59,7 @@ public class MainActivity extends Activity {
     DashboardView dashboardView;
     RemindersView remindersView;
     ReminderCardView reminderCardView;
+    EditReminderDialog editReminderDialog;
     ContextView contextView;
     SensorView sensorView;
     ProfileView profileView;
@@ -115,6 +117,7 @@ public class MainActivity extends Activity {
         remindersSection = remindersView.createView();
 
         reminderCardView = new ReminderCardView(this);
+        editReminderDialog = new EditReminderDialog(this);
 
         titleInput = remindersView.getTitleInput();
         messageInput = remindersView.getMessageInput();
@@ -489,45 +492,21 @@ public class MainActivity extends Activity {
     }
 
     private void showEditDialog(Reminder reminder) {
-        LinearLayout dialogLayout = new LinearLayout(this);
-        dialogLayout.setOrientation(LinearLayout.VERTICAL);
-        dialogLayout.setPadding(40, 20, 40, 20);
+        if (editReminderDialog == null) {
+            editReminderDialog = new EditReminderDialog(this);
+        }
 
-        EditText editTitle = new EditText(this);
-        editTitle.setHint("Reminder Title");
-        editTitle.setText(reminder.getTitle());
-
-        EditText editMessage = new EditText(this);
-        editMessage.setHint("Reminder Message");
-        editMessage.setText(reminder.getMessage());
-
-        EditText editPlace = new EditText(this);
-        editPlace.setHint("Place Name");
-        editPlace.setText(reminder.getPlace());
-
-        dialogLayout.addView(editTitle);
-        dialogLayout.addView(editMessage);
-        dialogLayout.addView(editPlace);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Edit Reminder")
-                .setView(dialogLayout)
-                .setPositiveButton("Update", (dialogInterface, i) -> {
-                    String newTitle = editTitle.getText().toString().trim();
-                    String newMessage = editMessage.getText().toString().trim();
-                    String newPlace = editPlace.getText().toString().trim();
-
-                    if (newTitle.isEmpty() || newMessage.isEmpty() || newPlace.isEmpty()) {
-                        Toast.makeText(MainActivity.this,
-                                "All fields are required",
-                                Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    updateReminderInFirebase(reminder.getId(), newTitle, newMessage, newPlace);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        editReminderDialog.show(reminder, new EditReminderDialog.EditReminderCallback() {
+            @Override
+            public void onUpdate(Reminder selectedReminder, String title, String message, String place) {
+                updateReminderInFirebase(
+                        selectedReminder.getId(),
+                        title,
+                        message,
+                        place
+                );
+            }
+        });
     }
 
     private void updateReminderInFirebase(String reminderId, String title, String message, String place) {
