@@ -4,6 +4,7 @@ import com.example.contextreminderapp.data.FirebaseRepository;
 import com.example.contextreminderapp.models.Reminder;
 import com.example.contextreminderapp.ui.dashboard.DashboardView;
 import com.example.contextreminderapp.ui.reminders.RemindersView;
+import com.example.contextreminderapp.ui.reminders.ReminderCardView;
 import com.example.contextreminderapp.ui.context.ContextView;
 import com.example.contextreminderapp.ui.sensors.SensorView;
 import com.example.contextreminderapp.ui.profile.ProfileView;
@@ -60,6 +61,7 @@ public class MainActivity extends Activity {
     FirebaseRepository repository;
     DashboardView dashboardView;
     RemindersView remindersView;
+    ReminderCardView reminderCardView;
     ContextView contextView;
     SensorView sensorView;
     ProfileView profileView;
@@ -119,6 +121,8 @@ public class MainActivity extends Activity {
 
         remindersView = new RemindersView(this);
         remindersSection = remindersView.createView();
+
+        reminderCardView = new ReminderCardView(this);
 
         titleInput = remindersView.getTitleInput();
         messageInput = remindersView.getMessageInput();
@@ -462,54 +466,24 @@ public class MainActivity extends Activity {
     }
 
     private void addReminderView(Reminder reminder) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(10), dp(14), dp(10));
-        card.setBackgroundColor(Color.rgb(10, 16, 32));
+        if (reminderCardView == null) {
+            reminderCardView = new ReminderCardView(this);
+        }
 
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+        LinearLayout card = reminderCardView.createCard(
+                reminder,
+                new ReminderCardView.ReminderActionListener() {
+                    @Override
+                    public void onEdit(Reminder selectedReminder) {
+                        showEditDialog(selectedReminder);
+                    }
+
+                    @Override
+                    public void onDelete(Reminder selectedReminder) {
+                        deleteReminderFromFirebase(selectedReminder.getId());
+                    }
+                }
         );
-        cardParams.setMargins(0, dp(6), 0, dp(8));
-        card.setLayoutParams(cardParams);
-
-        TextView reminderText = new TextView(this);
-        reminderText.setText(
-                "Title: " + reminder.getTitle() +
-                        "\nMessage: " + reminder.getMessage() +
-                        "\nPlace: " + reminder.getPlace()
-        );
-        reminderText.setTextSize(15);
-        reminderText.setTextColor(Color.rgb(230, 235, 245));
-        reminderText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        reminderText.setPadding(0, 0, 0, dp(6));
-
-        Button editButton = new Button(this);
-        editButton.setText("Edit Reminder");
-        styleButton(editButton, false);
-
-        Button deleteButton = new Button(this);
-        deleteButton.setText("Delete Reminder");
-        styleButton(deleteButton, true);
-
-        editButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showEditDialog(reminder);
-            }
-        });
-
-        deleteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                deleteReminderFromFirebase(reminder.getId());
-            }
-        });
-
-        card.addView(reminderText);
-        card.addView(editButton);
-        card.addView(deleteButton);
 
         savedReminderContainer.addView(card);
     }
@@ -953,32 +927,6 @@ public class MainActivity extends Activity {
 
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
-    }
-
-    private void styleButton(Button button, boolean isDeleteButton) {
-        button.setAllCaps(false);
-        button.setTextSize(13);
-        button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        button.setPadding(dp(12), 0, dp(12), 0);
-        button.setMinHeight(0);
-        button.setMinimumHeight(0);
-        button.setMinWidth(0);
-        button.setMinimumWidth(0);
-        button.setHeight(dp(40));
-        button.setBackgroundColor(Color.rgb(18, 25, 45));
-
-        if (isDeleteButton) {
-            button.setTextColor(Color.rgb(255, 120, 180));
-        } else {
-            button.setTextColor(Color.rgb(0, 230, 255));
-        }
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.setMargins(0, dp(4), 0, dp(4));
-        button.setLayoutParams(params);
     }
 
     private void styleResultText(TextView textView) {
