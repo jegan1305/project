@@ -1,5 +1,6 @@
 package com.example.contextreminderapp;
 
+import com.example.contextreminderapp.models.Reminder;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -62,19 +63,6 @@ public class MainActivity extends Activity {
     static final String CHANNEL_ID = "context_reminder_channel";
     boolean isAppInForeground = false;
 
-    static class Reminder {
-        String id;
-        String title;
-        String message;
-        String place;
-
-        Reminder(String id, String title, String message, String place) {
-            this.id = id;
-            this.title = title;
-            this.message = message;
-            this.place = place;
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -702,9 +690,9 @@ public class MainActivity extends Activity {
 
         TextView reminderText = new TextView(this);
         reminderText.setText(
-                "Title: " + reminder.title +
-                        "\nMessage: " + reminder.message +
-                        "\nPlace: " + reminder.place
+                "Title: " + reminder.getTitle()+
+                        "\nMessage: " + reminder.getMessage()+
+                        "\nPlace: " + reminder.getPlace()
         );
         reminderText.setTextSize(15);
         reminderText.setTextColor(Color.rgb(230, 235, 245));
@@ -729,7 +717,7 @@ public class MainActivity extends Activity {
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                deleteReminderFromFirebase(reminder.id);
+                deleteReminderFromFirebase(reminder.getId());
             }
         });
 
@@ -747,15 +735,15 @@ public class MainActivity extends Activity {
 
         EditText editTitle = new EditText(this);
         editTitle.setHint("Reminder Title");
-        editTitle.setText(reminder.title);
+        editTitle.setText(reminder.getTitle());
 
         EditText editMessage = new EditText(this);
         editMessage.setHint("Reminder Message");
-        editMessage.setText(reminder.message);
+        editMessage.setText(reminder.getMessage());
 
         EditText editPlace = new EditText(this);
         editPlace.setHint("Place Name");
-        editPlace.setText(reminder.place);
+        editPlace.setText(reminder.getPlace());
 
         dialogLayout.addView(editTitle);
         dialogLayout.addView(editMessage);
@@ -776,7 +764,7 @@ public class MainActivity extends Activity {
                         return;
                     }
 
-                    updateReminderInFirebase(reminder.id, newTitle, newMessage, newPlace);
+                    updateReminderInFirebase(reminder.getId(), newTitle, newMessage, newPlace);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -845,11 +833,11 @@ public class MainActivity extends Activity {
         boolean found = false;
 
         for (Reminder reminder : reminders) {
-            if (reminder.place.equalsIgnoreCase(currentPlace)) {
+            if (reminder.getPlace().equalsIgnoreCase(currentPlace)) {
                 found = true;
-                matchedReminders.append("Title: ").append(reminder.title)
-                        .append("\nMessage: ").append(reminder.message)
-                        .append("\nPlace: ").append(reminder.place)
+                matchedReminders.append("Title: ").append(reminder.getTitle())
+                        .append("\nMessage: ").append(reminder.getMessage())
+                        .append("\nPlace: ").append(reminder.getPlace())
                         .append("\n\n");
             }
         }
@@ -1119,12 +1107,12 @@ public class MainActivity extends Activity {
         boolean found = false;
 
         for (Reminder reminder : reminders) {
-            if (reminder.place.equalsIgnoreCase(currentPlace)) {
+            if (reminder.getPlace().equalsIgnoreCase(currentPlace)) {
                 found = true;
 
-                matchedReminders.append("Title: ").append(reminder.title)
-                        .append("\nMessage: ").append(reminder.message)
-                        .append("\nPlace: ").append(reminder.place)
+                matchedReminders.append("Title: ").append(reminder.getTitle())
+                        .append("\nMessage: ").append(reminder.getMessage())
+                        .append("\nPlace: ").append(reminder.getPlace())
                         .append("\nActivity: ").append(detectedActivity)
                         .append("\n\n");
             }
