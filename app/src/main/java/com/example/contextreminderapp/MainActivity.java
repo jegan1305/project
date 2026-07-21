@@ -4,6 +4,8 @@ import com.example.contextreminderapp.data.FirebaseRepository;
 import com.example.contextreminderapp.models.Reminder;
 import com.example.contextreminderapp.ui.dashboard.DashboardView;
 import com.example.contextreminderapp.ui.reminders.RemindersView;
+import com.example.contextreminderapp.ui.context.ContextView;
+import com.example.contextreminderapp.ui.sensors.SensorView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -57,6 +59,8 @@ public class MainActivity extends Activity {
     FirebaseRepository repository;
     DashboardView dashboardView;
     RemindersView remindersView;
+    ContextView contextView;
+    SensorView sensorView;
 
     SensorManager sensorManager;
     Sensor accelerometerSensor;
@@ -119,62 +123,18 @@ public class MainActivity extends Activity {
         saveButton = remindersView.getSaveButton();
         savedReminderContainer = remindersView.getSavedReminderContainer();
 
-        contextSection = new LinearLayout(this);
-        contextSection.setOrientation(LinearLayout.VERTICAL);
+        contextView = new ContextView(this);
+        contextSection = contextView.createView();
 
-        TextView contextHeading = new TextView(this);
-        contextHeading.setText("Check Current Context");
-        styleSectionHeading(contextHeading);
+        currentPlaceInput = contextView.getCurrentPlaceInput();
+        checkButton = contextView.getCheckButton();
+        backgroundCheckButton = contextView.getBackgroundCheckButton();
 
-        TextView contextInfo = new TextView(this);
-        contextInfo.setText(
-                "Enter your current place and check whether any reminder matches that context."
-        );
-        styleInfoCard(contextInfo);
+        sensorView = new SensorView(this);
+        sensorsSection = sensorView.createView();
 
-        currentPlaceInput = new EditText(this);
-        currentPlaceInput.setHint("Enter Current Place");
-        styleInput(currentPlaceInput);
-
-        checkButton = new Button(this);
-        checkButton.setText("Check Reminder Now");
-        styleButton(checkButton, false);
-
-        backgroundCheckButton = new Button(this);
-        backgroundCheckButton.setText("Start Background Check");
-        styleButton(backgroundCheckButton, false);
-
-        contextSection.addView(contextHeading);
-        contextSection.addView(contextInfo);
-        contextSection.addView(currentPlaceInput);
-        contextSection.addView(checkButton);
-        contextSection.addView(backgroundCheckButton);
-
-        sensorsSection = new LinearLayout(this);
-        sensorsSection.setOrientation(LinearLayout.VERTICAL);
-
-        TextView sensorsHeading = new TextView(this);
-        sensorsHeading.setText("Sensors");
-        styleSectionHeading(sensorsHeading);
-
-        TextView sensorsInfo = new TextView(this);
-        sensorsInfo.setText(
-                "Use wearable simulation or phone sensor detection to capture activity and connect it with the current place."
-        );
-        styleInfoCard(sensorsInfo);
-
-        simulateWearableButton = new Button(this);
-        simulateWearableButton.setText("Simulate Wearable Data");
-        styleButton(simulateWearableButton, false);
-
-        phoneSensorButton = new Button(this);
-        phoneSensorButton.setText("Start Phone Sensor Detection");
-        styleButton(phoneSensorButton, false);
-
-        sensorsSection.addView(sensorsHeading);
-        sensorsSection.addView(sensorsInfo);
-        sensorsSection.addView(simulateWearableButton);
-        sensorsSection.addView(phoneSensorButton);
+        simulateWearableButton = sensorView.getSimulateWearableButton();
+        phoneSensorButton = sensorView.getPhoneSensorButton();
 
         profileSection = new LinearLayout(this);
         profileSection.setOrientation(LinearLayout.VERTICAL);
