@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "113281591767",
+    "project_id": "contextreminderproject",
+    "storage_bucket": "contextreminderproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113281591767:android:da7c6bfb7d6edd4e644392",
+        "android_client_info": {
+          "package_name": "com.example.contextreminderapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXIz4Fa3AoLMqFr0HDhBbPMw5NMXUf6nk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
