@@ -6,6 +6,7 @@ import com.example.contextreminderapp.ui.dashboard.DashboardView;
 import com.example.contextreminderapp.ui.reminders.RemindersView;
 import com.example.contextreminderapp.ui.context.ContextView;
 import com.example.contextreminderapp.ui.sensors.SensorView;
+import com.example.contextreminderapp.ui.profile.ProfileView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -48,7 +49,7 @@ public class MainActivity extends Activity {
     Button dashboardTab, remindersTab, contextTab, sensorsTab, profileTab;
     Button aboutButton, termsButton;
 
-    TextView resultText, profileDeviceStatusText;
+    TextView resultText;
     TextView aboutCard, termsCard;
 
     LinearLayout savedReminderContainer;
@@ -61,6 +62,7 @@ public class MainActivity extends Activity {
     RemindersView remindersView;
     ContextView contextView;
     SensorView sensorView;
+    ProfileView profileView;
 
     SensorManager sensorManager;
     Sensor accelerometerSensor;
@@ -136,92 +138,13 @@ public class MainActivity extends Activity {
         simulateWearableButton = sensorView.getSimulateWearableButton();
         phoneSensorButton = sensorView.getPhoneSensorButton();
 
-        profileSection = new LinearLayout(this);
-        profileSection.setOrientation(LinearLayout.VERTICAL);
+        profileView = new ProfileView(this);
+        profileSection = profileView.createView();
 
-        TextView profileHeading = new TextView(this);
-        profileHeading.setText("Profile");
-        styleSectionHeading(profileHeading);
-
-        TextView profileUserCard = new TextView(this);
-        profileUserCard.setText(
-                "Demo User\n" +
-                        "Context-aware reminder user\n\n" +
-                        "SynqSense Prototype Tester"
-        );
-        styleInfoCard(profileUserCard);
-
-        TextView smartPreferencesCard = new TextView(this);
-        smartPreferencesCard.setText(
-                "Smart Preferences\n\n" +
-                        "• Default Place: home\n" +
-                        "• Reminder Mode: Context-based\n" +
-                        "• Notifications: Enabled"
-        );
-        styleInfoCard(smartPreferencesCard);
-
-        profileDeviceStatusText = new TextView(this);
-        styleInfoCard(profileDeviceStatusText);
-
-        TextView dataSyncCard = new TextView(this);
-        dataSyncCard.setText(
-                "Data Sync\n\n" +
-                        "• Firebase: Connected\n" +
-                        "• Reminders: Active\n" +
-                        "• Context Logs: Active\n" +
-                        "• Sensor Data: Active"
-        );
-        styleInfoCard(dataSyncCard);
-
-        aboutButton = new Button(this);
-        aboutButton.setText("About SynqSense");
-        styleButton(aboutButton, false);
-
-        aboutCard = new TextView(this);
-        aboutCard.setText(
-                "About SynqSense\n\n" +
-                        "SynqSense is a context-aware reminder prototype that connects reminders with the user's place and activity.\n\n" +
-                        "Main Purpose\n\n" +
-                        "To help users receive reminders when they are actually relevant to their current situation, instead of depending only on time-based alerts.\n\n" +
-                        "Current Version\n\n" +
-                        "The app supports Firebase reminder storage, place-based reminder checking, context logs, phone sensor detection, and wearable data simulation.\n\n" +
-                        "How It Works\n\n" +
-                        "Users can create reminders with a title, message, and place. When the current place matches a saved reminder, the app can trigger the reminder.\n\n" +
-                        "Prototype Note\n\n" +
-                        "This is a prototype version. Some features are simulated for testing and demonstration. Phone sensor detection depends on device sensor availability.\n\n" +
-                        "Project Goal\n\n" +
-                        "The goal of SynqSense is to explore a smarter reminder system that gives reminders when they are more meaningful and useful."
-        );
-        styleInfoCard(aboutCard);
-        aboutCard.setVisibility(View.GONE);
-
-        termsButton = new Button(this);
-        termsButton.setText("Terms and Conditions");
-        styleButton(termsButton, false);
-
-        termsCard = new TextView(this);
-        termsCard.setText(
-                "Terms and Conditions\n\n" +
-                        "1. SynqSense is currently a prototype application created for project demonstration and testing purposes.\n\n" +
-                        "2. The reminder result depends on the place entered by the user and the available device sensor data.\n\n" +
-                        "3. Phone sensor detection may vary based on device model, sensor availability, and movement condition.\n\n" +
-                        "4. Wearable data in the current version is simulated for testing the context-aware reminder workflow.\n\n" +
-                        "5. Reminder, context log, wearable data, and phone sensor data may be stored in Firebase for project testing and demonstration.\n\n" +
-                        "6. SynqSense should not be used as the only reminder source for emergency, medical-critical, or safety-critical tasks.\n\n" +
-                        "7. This app is designed to explore smarter reminders using place and activity context."
-        );
-        styleInfoCard(termsCard);
-        termsCard.setVisibility(View.GONE);
-
-        profileSection.addView(profileHeading);
-        profileSection.addView(profileUserCard);
-        profileSection.addView(smartPreferencesCard);
-        profileSection.addView(profileDeviceStatusText);
-        profileSection.addView(dataSyncCard);
-        profileSection.addView(aboutButton);
-        profileSection.addView(aboutCard);
-        profileSection.addView(termsButton);
-        profileSection.addView(termsCard);
+        aboutButton = profileView.getAboutButton();
+        termsButton = profileView.getTermsButton();
+        aboutCard = profileView.getAboutCard();
+        termsCard = profileView.getTermsCard();
 
         resultText = new TextView(this);
         styleResultText(resultText);
@@ -497,23 +420,16 @@ public class MainActivity extends Activity {
     }
 
     private void updateProfileStatus() {
-        if (profileDeviceStatusText == null) {
+        if (profileView == null) {
             return;
         }
 
-        String phoneSensorStatus;
-        if (accelerometerSensor == null) {
-            phoneSensorStatus = "Not available";
-        } else {
-            phoneSensorStatus = "Available";
-        }
+        boolean sensorAvailable = accelerometerSensor != null;
 
-        profileDeviceStatusText.setText(
-                "Device Status\n\n" +
-                        "• Phone Sensor: " + phoneSensorStatus + "\n" +
-                        "• Wearable Mode: Simulation\n" +
-                        "• Last Activity: " + latestDetectedActivity + "\n" +
-                        "• Movement Level: " + latestMovementLevel
+        profileView.updateDeviceStatus(
+                sensorAvailable,
+                latestDetectedActivity,
+                latestMovementLevel
         );
     }
 
@@ -1149,48 +1065,6 @@ public class MainActivity extends Activity {
                 drawable.setTint(color);
             }
         }
-    }
-
-    private void styleInput(EditText input) {
-        input.setTextSize(15);
-        input.setTextColor(Color.rgb(230, 235, 245));
-        input.setHintTextColor(Color.rgb(160, 170, 190));
-        input.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        input.setSingleLine(true);
-        input.setPadding(dp(10), 0, dp(10), 0);
-        input.setMinHeight(0);
-        input.setMinimumHeight(0);
-        input.setHeight(dp(44));
-        input.setBackgroundColor(Color.rgb(18, 25, 45));
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.setMargins(0, dp(4), 0, dp(4));
-        input.setLayoutParams(params);
-    }
-
-    private void styleSectionHeading(TextView textView) {
-        textView.setTextSize(20);
-        textView.setTextColor(Color.rgb(0, 230, 255));
-        textView.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        textView.setPadding(0, dp(14), 0, dp(6));
-    }
-
-    private void styleInfoCard(TextView textView) {
-        textView.setTextSize(14);
-        textView.setTextColor(Color.rgb(220, 225, 238));
-        textView.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        textView.setPadding(dp(14), dp(12), dp(14), dp(12));
-        textView.setBackgroundColor(Color.rgb(10, 16, 32));
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.setMargins(0, dp(5), 0, dp(8));
-        textView.setLayoutParams(params);
     }
 
     private void styleResultText(TextView textView) {
