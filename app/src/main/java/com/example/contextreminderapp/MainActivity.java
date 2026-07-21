@@ -10,15 +10,12 @@ import com.example.contextreminderapp.ui.sensors.SensorView;
 import com.example.contextreminderapp.ui.profile.ProfileView;
 import com.example.contextreminderapp.ui.navigation.BottomNavView;
 import com.example.contextreminderapp.utils.NotificationHelper;
+import com.example.contextreminderapp.utils.PhoneSensorHelper;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -53,6 +50,7 @@ public class MainActivity extends Activity {
 
     FirebaseRepository repository;
     NotificationHelper notificationHelper;
+    PhoneSensorHelper phoneSensorHelper;
 
     DashboardView dashboardView;
     RemindersView remindersView;
@@ -61,9 +59,6 @@ public class MainActivity extends Activity {
     SensorView sensorView;
     ProfileView profileView;
     BottomNavView bottomNavView;
-
-    SensorManager sensorManager;
-    Sensor accelerometerSensor;
 
     String latestDetectedActivity = "unknown";
     double latestMovementLevel = 0.0;
@@ -83,10 +78,7 @@ public class MainActivity extends Activity {
         notificationHelper.createNotificationChannel();
         notificationHelper.requestNotificationPermission();
 
-        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        if (sensorManager != null) {
-            accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        }
+        phoneSensorHelper = new PhoneSensorHelper(this);
 
         LinearLayout rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
@@ -383,7 +375,11 @@ public class MainActivity extends Activity {
             return;
         }
 
-        boolean accelerometerAvailable = accelerometerSensor != null;
+        boolean accelerometerAvailable = false;
+
+        if (phoneSensorHelper != null) {
+            accelerometerAvailable = phoneSensorHelper.isAccelerometerAvailable();
+        }
 
         dashboardView.updateSummary(
                 reminders.size(),
@@ -398,7 +394,11 @@ public class MainActivity extends Activity {
             return;
         }
 
-        boolean sensorAvailable = accelerometerSensor != null;
+        boolean sensorAvailable = false;
+
+        if (phoneSensorHelper != null) {
+            sensorAvailable = phoneSensorHelper.isAccelerometerAvailable();
+        }
 
         profileView.updateDeviceStatus(
                 sensorAvailable,
@@ -721,93 +721,59 @@ public class MainActivity extends Activity {
     }
 
     private void startPhoneSensorDetection() {
-        if (accelerometerSensor == null) {
-            Toast.makeText(MainActivity.this,
-                    "Accelerometer sensor not available",
-                    Toast.LENGTH_LONG).show();
-
-            showResult(
-                    "Result:\nPhone Sensor Detection\n\n" +
-                            "Accelerometer sensor not available on this device.\n" +
-                            "App is safe. No crash."
-            );
-
-            return;
+        if (phoneSensorHelper == null) {
+            phoneSensorHelper = new PhoneSensorHelper(this);
         }
 
-        Toast.makeText(MainActivity.this,
-                "Phone sensor detection started for 5 seconds",
-                Toast.LENGTH_SHORT).show();
-
-        showResult(
-                "Result:\nPhone sensor detection running...\n" +
-                        "Move the phone slightly for testing."
-        );
-
-        final float[] lastX = {0};
-        final float[] lastY = {0};
-        final float[] lastZ = {0};
-        final double[] maxMovement = {0};
-
-        final SensorEventListener sensorEventListener = new SensorEventListener() {
+        phoneSensorHelper.startDetection(new PhoneSensorHelper.SensorDetectionCallback() {
             @Override
-            public void onSensorChanged(SensorEvent event) {
-                float x = event.values[0];
-                float y = event.values[1];
-                float z = event.values[2];
+            public void onSensorUnavailable() {
+                Toast.makeText(MainActivity.this,
+                        "Accelerometer sensor not available",
+                        Toast.LENGTH_LONG).show();
 
-                double magnitude = Math.sqrt((x * x) + (y * y) + (z * z));
-                double movementLevel = Math.abs(magnitude - 9.8);
-
-                if (movementLevel > maxMovement[0]) {
-                    maxMovement[0] = movementLevel;
-                    lastX[0] = x;
-                    lastY[0] = y;
-                    lastZ[0] = z;
-                }
+                showResult(
+                        "Result:\nPhone Sensor Detection\n\n" +
+                                "Accelerometer sensor not available on this device.\n" +
+                                "App is safe. No crash."
+                );
             }
 
             @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            public void onDetectionStarted() {
+                Toast.makeText(MainActivity.this,
+                        "Phone sensor detection started for 5 seconds",
+                        Toast.LENGTH_SHORT).show();
+
+                showResult(
+                        "Result:\nPhone sensor detection running...\n" +
+                                "Move the phone slightly for testing."
+                );
             }
-        };
 
-        sensorManager.registerListener(
-                sensorEventListener,
-                accelerometerSensor,
-                SensorManager.SENSOR_DELAY_NORMAL
-        );
-
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
-            public void run() {
-                sensorManager.unregisterListener(sensorEventListener);
-
-                String detectedActivity;
-
-                if (maxMovement[0] > 2.0) {
-                    detectedActivity = "walking";
-                } else if (maxMovement[0] > 0.4) {
-                    detectedActivity = "slight_movement";
-                } else {
-                    detectedActivity = "idle_or_standing";
-                }
-
+            public void onDetectionCompleted(
+                    float x,
+                    float y,
+                    float z,
+                    double movementLevel,
+                    String detectedActivity
+            ) {
                 latestDetectedActivity = detectedActivity;
-                latestMovementLevel = maxMovement[0];
+                latestMovementLevel = movementLevel;
 
                 updateDashboardSummary();
                 updateProfileStatus();
 
                 savePhoneSensorData(
-                        lastX[0],
-                        lastY[0],
-                        lastZ[0],
-                        maxMovement[0],
+                        x,
+                        y,
+                        z,
+                        movementLevel,
                         detectedActivity
                 );
             }
-        }, 5000);
+        });
     }
 
     private void savePhoneSensorData(float x, float y, float z, double movementLevel, String detectedActivity) {
