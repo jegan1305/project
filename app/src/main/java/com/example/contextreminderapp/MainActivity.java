@@ -12,6 +12,7 @@ import com.example.contextreminderapp.ui.navigation.BottomNavView;
 import com.example.contextreminderapp.utils.NotificationHelper;
 import com.example.contextreminderapp.utils.PhoneSensorHelper;
 import com.example.contextreminderapp.utils.WearableSimulationHelper;
+import com.example.contextreminderapp.utils.ContextMatcherHelper;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -52,6 +53,7 @@ public class MainActivity extends Activity {
     NotificationHelper notificationHelper;
     PhoneSensorHelper phoneSensorHelper;
     WearableSimulationHelper wearableSimulationHelper;
+    ContextMatcherHelper contextMatcherHelper;
 
     DashboardView dashboardView;
     RemindersView remindersView;
@@ -81,6 +83,7 @@ public class MainActivity extends Activity {
 
         phoneSensorHelper = new PhoneSensorHelper(this);
         wearableSimulationHelper = new WearableSimulationHelper();
+        contextMatcherHelper = new ContextMatcherHelper();
 
         LinearLayout rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
@@ -585,45 +588,42 @@ public class MainActivity extends Activity {
             return;
         }
 
-        StringBuilder matchedReminders = new StringBuilder();
-        boolean found = false;
-
-        for (Reminder reminder : reminders) {
-            if (reminder.getPlace().equalsIgnoreCase(currentPlace)) {
-                found = true;
-                matchedReminders.append("Title: ").append(reminder.getTitle())
-                        .append("\nMessage: ").append(reminder.getMessage())
-                        .append("\nPlace: ").append(reminder.getPlace())
-                        .append("\n\n");
-            }
+        if (contextMatcherHelper == null) {
+            contextMatcherHelper = new ContextMatcherHelper();
         }
 
+        ContextMatcherHelper.MatchResult matchResult =
+                contextMatcherHelper.checkPlaceMatch(reminders, currentPlace);
+
         String triggerType;
+
         if (fromBackgroundCheck) {
             triggerType = "background_simulation";
         } else {
             triggerType = "foreground_manual";
         }
 
-        if (found) {
-            saveContextLog(currentPlace, "matched", triggerType, matchedReminders.toString());
+        if (matchResult.isFound()) {
+            String matchedDetails = matchResult.getMatchedDetails();
 
-            showResult("Result:\nReminder Triggered!\n\n" + matchedReminders);
+            saveContextLog(currentPlace, "matched", triggerType, matchedDetails);
+
+            showResult("Result:\nReminder Triggered!\n\n" + matchedDetails);
 
             if (isAppInForeground && !fromBackgroundCheck) {
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Reminder Triggered")
-                        .setMessage(matchedReminders.toString())
+                        .setMessage(matchedDetails)
                         .setPositiveButton("OK", null)
                         .show();
             } else if (isAppInForeground) {
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Background Check Result")
-                        .setMessage(matchedReminders.toString())
+                        .setMessage(matchedDetails)
                         .setPositiveButton("OK", null)
                         .show();
             } else {
-                notificationHelper.showPhoneNotification("Reminder Triggered", matchedReminders.toString());
+                notificationHelper.showPhoneNotification("Reminder Triggered", matchedDetails);
             }
 
         } else {
@@ -818,42 +818,44 @@ public class MainActivity extends Activity {
             currentPlace = "unknown";
         }
 
-        StringBuilder matchedReminders = new StringBuilder();
-        boolean found = false;
-
-        for (Reminder reminder : reminders) {
-            if (reminder.getPlace().equalsIgnoreCase(currentPlace)) {
-                found = true;
-
-                matchedReminders.append("Title: ").append(reminder.getTitle())
-                        .append("\nMessage: ").append(reminder.getMessage())
-                        .append("\nPlace: ").append(reminder.getPlace())
-                        .append("\nActivity: ").append(detectedActivity)
-                        .append("\n\n");
-            }
+        if (detectedActivity == null || detectedActivity.trim().isEmpty()) {
+            detectedActivity = "unknown";
         }
 
-        if (found) {
+        if (contextMatcherHelper == null) {
+            contextMatcherHelper = new ContextMatcherHelper();
+        }
+
+        ContextMatcherHelper.MatchResult matchResult =
+                contextMatcherHelper.checkSmartContextMatch(
+                        reminders,
+                        currentPlace,
+                        detectedActivity
+                );
+
+        if (matchResult.isFound()) {
+            String matchedDetails = matchResult.getMatchedDetails();
+
             saveContextLog(
                     currentPlace,
                     "smart_context_matched",
                     "place_plus_activity",
-                    matchedReminders.toString()
+                    matchedDetails
             );
 
             showResult(
                     "Result:\nSmart Context Reminder Triggered!\n\n" +
-                            matchedReminders
+                            matchedDetails
             );
 
             if (isAppInForeground) {
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Smart Context Reminder")
-                        .setMessage(matchedReminders.toString())
+                        .setMessage(matchedDetails)
                         .setPositiveButton("OK", null)
                         .show();
             } else {
-                notificationHelper.showPhoneNotification("Smart Context Reminder", matchedReminders.toString());
+                notificationHelper.showPhoneNotification("Smart Context Reminder", matchedDetails);
             }
 
         } else {
