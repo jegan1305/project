@@ -2,6 +2,7 @@ package com.example.contextreminderapp;
 
 import com.example.contextreminderapp.data.FirebaseRepository;
 import com.example.contextreminderapp.models.Reminder;
+import com.example.contextreminderapp.ui.dashboard.DashboardView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -44,7 +45,7 @@ public class MainActivity extends Activity {
     Button dashboardTab, remindersTab, contextTab, sensorsTab, profileTab;
     Button aboutButton, termsButton;
 
-    TextView resultText, dashboardSummaryText, profileDeviceStatusText;
+    TextView resultText, profileDeviceStatusText;
     TextView aboutCard, termsCard;
 
     LinearLayout savedReminderContainer;
@@ -53,6 +54,7 @@ public class MainActivity extends Activity {
     ArrayList<Reminder> reminders = new ArrayList<>();
 
     FirebaseRepository repository;
+    DashboardView dashboardView;
 
     SensorManager sensorManager;
     Sensor accelerometerSensor;
@@ -103,26 +105,8 @@ public class MainActivity extends Activity {
         tagline.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         tagline.setPadding(0, 0, 0, dp(10));
 
-        dashboardSection = new LinearLayout(this);
-        dashboardSection.setOrientation(LinearLayout.VERTICAL);
-
-        TextView dashboardHeading = new TextView(this);
-        dashboardHeading.setText("Dashboard");
-        styleSectionHeading(dashboardHeading);
-
-        TextView dashboardIntro = new TextView(this);
-        dashboardIntro.setText(
-                "Welcome to SynqSense.\n\n" +
-                        "A context-aware reminder prototype that connects reminders, places, wearable simulation, and phone sensor activity."
-        );
-        styleInfoCard(dashboardIntro);
-
-        dashboardSummaryText = new TextView(this);
-        styleInfoCard(dashboardSummaryText);
-
-        dashboardSection.addView(dashboardHeading);
-        dashboardSection.addView(dashboardIntro);
-        dashboardSection.addView(dashboardSummaryText);
+        dashboardView = new DashboardView(this);
+        dashboardSection = dashboardView.createView();
 
         remindersSection = new LinearLayout(this);
         remindersSection.setOrientation(LinearLayout.VERTICAL);
@@ -565,29 +549,17 @@ public class MainActivity extends Activity {
     }
 
     private void updateDashboardSummary() {
-        if (dashboardSummaryText == null) {
+        if (dashboardView == null) {
             return;
         }
 
-        String sensorStatus;
-        if (accelerometerSensor == null) {
-            sensorStatus = "Phone accelerometer: Not available";
-        } else {
-            sensorStatus = "Phone accelerometer: Available";
-        }
+        boolean accelerometerAvailable = accelerometerSensor != null;
 
-        dashboardSummaryText.setText(
-                "Project Status\n\n" +
-                        "Total reminders: " + reminders.size() + "\n" +
-                        "Latest activity: " + latestDetectedActivity + "\n" +
-                        "Latest movement level: " + latestMovementLevel + "\n" +
-                        sensorStatus + "\n\n" +
-                        "Modules active:\n" +
-                        "• Reminder management\n" +
-                        "• Firebase Firestore\n" +
-                        "• Context logs\n" +
-                        "• Wearable simulation\n" +
-                        "• Phone sensor detection"
+        dashboardView.updateSummary(
+                reminders.size(),
+                latestDetectedActivity,
+                latestMovementLevel,
+                accelerometerAvailable
         );
     }
 
